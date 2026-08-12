@@ -1,6 +1,9 @@
 export interface Objective {
   id: string;
   text: string;
+  /** Soft-deleted objectives are hidden from the active list but kept so
+   * past check-ins referencing their id remain valid and displayable. */
+  archived?: boolean;
 }
 
 export interface Member {
@@ -23,6 +26,9 @@ export interface Group {
   code: string;
   name: string;
   createdAt: number;
+  /** Member id of whoever founded the cell. Falls back to the earliest
+   * joined member for cells created before this field existed. */
+  founderId?: string;
   objectives: Objective[];
   members: Member[];
   messages: ChatMessage[];

@@ -5,9 +5,7 @@ const TABLE = 'groups';
 
 export class BackendNotConfiguredError extends Error {
   constructor() {
-    super(
-      "Le backend Supabase n'est pas configuré (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquants)."
-    );
+    super('Supabase backend is not configured (missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).');
     this.name = 'BackendNotConfiguredError';
   }
 }
@@ -22,6 +20,7 @@ function rowToGroup(row: Record<string, unknown>): Group {
     code: row.code as string,
     name: row.name as string,
     createdAt: row.created_at as number,
+    founderId: (row.founder_id as string | null) ?? undefined,
     objectives: (row.objectives as Group['objectives']) ?? [],
     members: (row.members as Group['members']) ?? [],
     messages: (row.messages as Group['messages']) ?? [],
@@ -33,6 +32,7 @@ function groupToRow(group: Group) {
     code: group.code,
     name: group.name,
     created_at: group.createdAt,
+    founder_id: group.founderId ?? null,
     objectives: group.objectives,
     members: group.members,
     messages: group.messages,
@@ -44,6 +44,15 @@ export async function fetchGroup(code: string): Promise<Group | null> {
   const { data, error } = await client.from(TABLE).select('*').eq('code', code).maybeSingle();
   if (error) throw error;
   return data ? rowToGroup(data) : null;
+}
+
+/** Every cell, for the global/inter-cell rankings. RLS keeps this open to all
+ * rows (see supabase/schema.sql) since there is no per-user auth in this app. */
+export async function fetchAllGroups(): Promise<Group[]> {
+  const client = requireClient();
+  const { data, error } = await client.from(TABLE).select('*');
+  if (error) throw error;
+  return (data ?? []).map(rowToGroup);
 }
 
 export async function insertGroup(group: Group): Promise<void> {

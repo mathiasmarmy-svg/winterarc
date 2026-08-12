@@ -1,22 +1,4 @@
-export interface Grade {
-  key: string;
-  label: string;
-  threshold: number;
-  color: string;
-}
-
-export const GRADES: Grade[] = [
-  { key: 'bronze', label: 'Bronze', threshold: 0, color: '#B08968' },
-  { key: 'silver', label: 'Argent', threshold: 30, color: '#B8C4D0' },
-  { key: 'gold', label: 'Or', threshold: 70, color: '#E8B84B' },
-  { key: 'frost', label: 'Forgé', threshold: 100, color: '#5FCBEE' },
-];
-
-export function gradeFor(pct: number): Grade {
-  let g = GRADES[0];
-  for (const grade of GRADES) if (pct >= grade.threshold) g = grade;
-  return g;
-}
+import type { Group, Member, Objective } from '../types';
 
 export const AVATAR_HUES = ['#5FCBEE', '#FF5A2B', '#B08968', '#8FD694', '#E8B84B', '#C994E8'];
 
@@ -43,4 +25,35 @@ export function makeGroupCode(): string {
 
 export function formatDay(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+export function activeObjectives(group: Pick<Group, 'objectives'>): Objective[] {
+  return group.objectives.filter((o) => !o.archived);
+}
+
+/** Cells created before `founderId` existed fall back to their earliest member. */
+export function founderIdOf(group: Pick<Group, 'founderId' | 'members'>): string | undefined {
+  if (group.founderId) return group.founderId;
+  const earliest = group.members.slice().sort((a, b) => a.joinedAt - b.joinedAt)[0];
+  return earliest?.id;
+}
+
+export function isFounder(group: Pick<Group, 'founderId' | 'members'>, memberId: string): boolean {
+  return founderIdOf(group) === memberId;
+}
+
+export function streakFor(objectives: Objective[], member: Member): number {
+  const activeIds = activeObjectives({ objectives });
+  if (activeIds.length === 0) return 0;
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const key = formatDay(d);
+    const done = member.checkins[key];
+    if (done && activeIds.every((o) => done.includes(o.id))) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else break;
+  }
+  return streak;
 }
