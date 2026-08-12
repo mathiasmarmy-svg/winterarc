@@ -17,11 +17,14 @@ alter table public.groups add column if not exists founder_id text;
 
 alter table public.groups enable row level security;
 
--- The app has no login system: anyone holding a group's 6-character code
--- can read and write that group's row. This matches the original app's
--- security model (a shared code is the access control). Rankings need to
--- read every cell's members to compute cross-group leaderboards, which is
--- why select is open to all rows rather than scoped to one code.
+-- Anyone holding a group's 6-character code can read and write that group's
+-- row — a shared code (not a server-checked login) is the access control.
+-- Members do carry a pseudo + salted password hash so they can recover their
+-- identity from another device, but since select is open to all rows the
+-- anon key can read those hashes too; only the hash is stored, never the
+-- raw password. Rankings need to read every cell's members to compute
+-- cross-group leaderboards, which is why select is open to all rows rather
+-- than scoped to one code.
 drop policy if exists "anyone can read groups" on public.groups;
 create policy "anyone can read groups" on public.groups
   for select using (true);

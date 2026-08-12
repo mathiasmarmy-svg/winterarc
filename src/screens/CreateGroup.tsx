@@ -8,12 +8,13 @@ export function CreateGroup({
   error,
 }: {
   onBack: () => void;
-  onSubmit: (groupName: string, name: string, city: string, objectives: string[]) => void;
+  onSubmit: (groupName: string, name: string, city: string, password: string, objectives: string[]) => void;
   error?: string;
 }) {
   const [groupName, setGroupName] = useState('');
   const [name, setName] = useState('');
   const [city, setCity] = useState('');
+  const [password, setPassword] = useState('');
   const [objectives, setObjectives] = useState(['']);
   const [step, setStep] = useState(1);
 
@@ -39,7 +40,13 @@ export function CreateGroup({
           <div className="h-3.5" />
           <FieldLabel>City (optional, to meet up later)</FieldLabel>
           <TextInput value={city} onChange={setCity} placeholder="Morges" />
-          <PrimaryButton disabled={!groupName.trim() || !name.trim()} onClick={() => setStep(2)} className="mt-5">
+          <div className="h-3.5" />
+          <FieldLabel>Password</FieldLabel>
+          <TextInput value={password} onChange={setPassword} placeholder="At least 4 characters" password />
+          <p className="text-text-low text-[12px] mt-2">
+            Your pseudo + password let you log back in from any device if you lose this one.
+          </p>
+          <PrimaryButton disabled={!groupName.trim() || !name.trim() || password.length < 4} onClick={() => setStep(2)} className="mt-5">
             Continue
           </PrimaryButton>
         </div>
@@ -75,7 +82,7 @@ export function CreateGroup({
           {error && <div className="text-ember text-[13px] mt-2.5">{error}</div>}
           <PrimaryButton
             disabled={validObjectives.length === 0}
-            onClick={() => onSubmit(groupName.trim(), name.trim(), city.trim(), validObjectives)}
+            onClick={() => onSubmit(groupName.trim(), name.trim(), city.trim(), password, validObjectives)}
             className="mt-5"
           >
             Forge the cell

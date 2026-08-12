@@ -67,6 +67,19 @@ export async function saveGroup(group: Group): Promise<void> {
   if (error) throw error;
 }
 
+/** Pseudos are unique across the whole app (they double as a login username),
+ * not just within one cell — so uniqueness has to be checked against every
+ * cell's member list. */
+export async function findMemberByPseudo(pseudo: string): Promise<{ group: Group; member: Group['members'][number] } | null> {
+  const normalized = pseudo.trim().toLowerCase();
+  const groups = await fetchAllGroups();
+  for (const group of groups) {
+    const member = group.members.find((m) => m.name.trim().toLowerCase() === normalized);
+    if (member) return { group, member };
+  }
+  return null;
+}
+
 export function subscribeGroup(code: string, onChange: (group: Group) => void): () => void {
   if (!supabaseConfigured || !supabase) return () => {};
   const client = supabase;

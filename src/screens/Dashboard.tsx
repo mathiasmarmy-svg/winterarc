@@ -12,6 +12,7 @@ import {
   MapPin,
   Send,
   Trophy,
+  Award,
   Settings2,
   Plus,
   Archive,
@@ -20,7 +21,8 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Wordmark, Avatar, RankBadge, BeltLabel, Progress, TabPanel, StaggerItem } from '../components/UI';
 import { formatDay, todayKey, activeObjectives, founderIdOf, isFounder, streakFor, uid } from '../lib/utils';
-import { computeBelt, cumulativeActiveDays } from '../lib/belt';
+import { computeBelt, computeCellBelt, cumulativeActiveDays, ALL_TIERS } from '../lib/belt';
+import type { BeltTier } from '../lib/belt';
 import { fetchAllGroups } from '../lib/store';
 import type { Group, Identity, Member, Objective } from '../types';
 
@@ -37,6 +39,7 @@ const TABS = [
   { key: 'today', label: 'Today', icon: Target },
   { key: 'group', label: 'Cell', icon: Users },
   { key: 'rankings', label: 'Rankings', icon: Trophy },
+  { key: 'ranks', label: 'Ranks', icon: Award },
   { key: 'chat', label: 'Chat', icon: MessageCircle },
   { key: 'stats', label: 'Stats', icon: BarChart3 },
 ] as const;
@@ -105,6 +108,7 @@ export function Dashboard({ group, me, onCheckIn, onLeave, onSendMessage, onUpda
         )}
         {tab === 'group' && <GroupTab group={group} me={me} today={today} />}
         {tab === 'rankings' && <RankingsTab group={group} me={me} />}
+        {tab === 'ranks' && <RanksTab group={group} me={me} />}
         {tab === 'chat' && <ChatTab group={group} me={me} onSendMessage={onSendMessage} />}
         {tab === 'stats' && <StatsTab group={group} me={me} />}
       </TabPanel>
@@ -458,6 +462,7 @@ function RankingsTab({ group, me }: { group: Group; me: Identity }) {
                 <div className="flex items-center gap-3 px-4 py-3 rounded panel-row border border-line">
                   <div className="w-6 text-center font-mono text-[12.5px] font-bold text-text-low flex-shrink-0">#{idx + 1}</div>
                   <Avatar name={p.member.name} id={p.member.id} active={p.member.id === me.id && p.group.code === group.code} size={30} />
+                  <RankBadge tier={computeBelt(p.member, p.group.objectives).current} size={26} />
                   <div className="flex-1 min-w-0">
                     <div className="text-[13.5px] font-semibold truncate">{p.member.name}</div>
                     <div className="text-[11px] text-text-low truncate">{p.group.name}</div>
@@ -484,6 +489,7 @@ function RankingsTab({ group, me }: { group: Group; me: Identity }) {
                   style={{ border: `1px solid ${c.group.code === group.code ? '#2F5560' : '#242938'}` }}
                 >
                   <div className="w-6 text-center font-mono text-[12.5px] font-bold text-text-low flex-shrink-0">#{idx + 1}</div>
+                  <RankBadge tier={computeCellBelt(c.group).current} size={26} />
                   <div className="flex-1 min-w-0">
                     <div className="text-[13.5px] font-semibold truncate">
                       {c.group.name} {c.group.code === group.code && <span className="text-ice font-normal text-[11px]">· your cell</span>}
@@ -500,6 +506,129 @@ function RankingsTab({ group, me }: { group: Group; me: Identity }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------- Ranks / paliers ladder ----------
+function LadderBadge({ tier, state }: { tier: BeltTier; state: 'locked' | 'unlocked' | 'current' }) {
+  const locked = state === 'locked';
+  const current = state === 'current';
+  const color = locked ? '#2A2F3B' : tier.color;
+  return (
+    <motion.div
+      animate={current ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+      transition={{ duration: 1.8, repeat: current ? Infinity : 0, ease: 'easeInOut' }}
+      title={locked ? 'Locked' : tier.label}
+      className="relative flex items-center justify-center flex-shrink-0 rounded-full"
+      style={{
+        width: 34,
+        height: 34,
+        background: locked ? 'transparent' : `radial-gradient(circle at 30% 30%, ${color}55, ${color}15)`,
+        border: `1.5px solid ${color}`,
+        boxShadow: current ? `0 0 14px ${color}aa` : locked ? undefined : `0 0 5px ${color}33`,
+      }}
+    >
+      <svg width={17} height={17} viewBox="0 0 24 24" fill="none">
+        <path
+          d="M12 2 L21 6.5 V15 C21 18.5 17 21.2 12 22.5 C7 21.2 3 18.5 3 15 V6.5 Z"
+          stroke={color}
+          strokeWidth={locked ? 1.3 : 1.8}
+          fill="none"
+          strokeLinejoin="round"
+          strokeDasharray={locked ? '2 2' : undefined}
+        />
+        {!locked && (
+          <path d="M8.5 12 L11 14.5 L15.5 9.5" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+      <div className="absolute left-1/2 -translate-x-1/2 flex gap-[2px]" style={{ bottom: -6 }}>
+        {Array.from({ length: tier.subIndex + 1 }).map((_, i) => (
+          <div key={i} style={{ width: 5, height: 2, background: color, borderRadius: 1 }} />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function BadgeLadder({ belt, title }: { belt: { current: BeltTier; record: BeltTier }; title: string }) {
+  const currentFlat = belt.current.tierIndex * 3 + belt.current.subIndex;
+  const recordFlat = belt.record.tierIndex * 3 + belt.record.subIndex;
+  const unlockedFlat = Math.max(currentFlat, recordFlat);
+  const rows: BeltTier[][] = [];
+  for (let p = 0; p < 10; p++) rows.push(ALL_TIERS.slice(p * 3, p * 3 + 3));
+
+  return (
+    <div className="border border-line rounded panel p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <Award size={16} color="#E8B84B" />
+        <span className="text-[13px] font-bold text-text-mid uppercase tracking-[1.5px]">{title}</span>
+      </div>
+      <p className="text-text-low text-[12.5px] mb-5">
+        Every stretch of consistency unlocks the next badge on the ladder — thirty to earn, one winter to climb.
+      </p>
+      <div className="flex flex-col gap-3">
+        {rows.map((row, p) => {
+          const rowUnlocked = p * 3 <= unlockedFlat;
+          const name = row[0].label.split(' ')[0];
+          return (
+            <div key={p} className="flex items-center gap-3.5">
+              <div
+                className="w-[70px] flex-shrink-0 text-[11px] font-mono uppercase tracking-wider truncate"
+                style={{ color: rowUnlocked ? row[0].color : '#4B525E' }}
+              >
+                {name}
+              </div>
+              <div className="flex gap-4">
+                {row.map((tier) => {
+                  const flat = tier.tierIndex * 3 + tier.subIndex;
+                  const state = flat === currentFlat ? 'current' : flat <= unlockedFlat ? 'unlocked' : 'locked';
+                  return <LadderBadge key={tier.key} tier={tier} state={state} />;
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-5 pt-4 border-t border-line flex items-center gap-3">
+        <RankBadge tier={belt.current} size={36} />
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-semibold truncate">{belt.current.label}</div>
+          <BeltLabel current={belt.current} record={belt.record} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RanksTab({ group, me }: { group: Group; me: Identity }) {
+  const [selected, setSelected] = useState(me.id);
+  const member = group.members.find((m) => m.id === selected) || group.members[0];
+  const belt = computeBelt(member, group.objectives);
+  const cellBelt = computeCellBelt(group);
+
+  return (
+    <div>
+      <div className="flex gap-2 mb-4.5 flex-wrap">
+        {group.members.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => setSelected(m.id)}
+            className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1.5 rounded text-[12.5px] text-text-hi transition-colors"
+            style={{
+              background: selected === m.id ? 'rgba(95,203,238,0.1)' : '#111319',
+              border: `1px solid ${selected === m.id ? '#5FCBEE' : '#242938'}`,
+            }}
+          >
+            <Avatar name={m.name} id={m.id} size={20} />
+            {m.name}
+          </button>
+        ))}
+      </div>
+      <div className="grid gap-4">
+        <BadgeLadder belt={belt} title={`${member.name}'s ladder`} />
+        <BadgeLadder belt={cellBelt} title={`${group.name} — cell ladder`} />
+      </div>
     </div>
   );
 }
@@ -592,8 +721,12 @@ function StatsTab({ group, me }: { group: Group; me: Identity }) {
   }));
   const overallPct = cells.length ? Math.round((cells.reduce((a, c) => a + c.ratio, 0) / cells.length) * 100) : 0;
 
+  // Every cell always gets a visible border so the grid reads as a full
+  // 10x7 block even when a member has no history yet — the near-black
+  // panel background used to make ratio===0 cells (#191C24) blend in
+  // completely with the surrounding panel, making the heatmap look empty.
   const colorFor = (ratio: number) => {
-    if (ratio === 0) return '#191C24';
+    if (ratio === 0) return '#1B2130';
     if (ratio < 0.5) return '#2F5560';
     if (ratio < 1) return '#3A9FBF';
     return '#5FCBEE';
@@ -658,7 +791,7 @@ function StatsTab({ group, me }: { group: Group; me: Identity }) {
                 <div
                   key={c.key}
                   title={`${c.date.toLocaleDateString('en-GB')} · ${Math.round(c.ratio * 100)}%`}
-                  className="w-[13px] h-[13px] rounded-[3px] transition-transform hover:scale-125"
+                  className="w-[13px] h-[13px] rounded-[3px] border border-line transition-transform hover:scale-125"
                   style={{ background: colorFor(c.ratio) }}
                 />
               ))}
@@ -668,7 +801,7 @@ function StatsTab({ group, me }: { group: Group; me: Identity }) {
         <div className="flex items-center gap-1.5 mt-3 text-[11px] text-text-low">
           <span>Less</span>
           {[0, 0.3, 0.6, 1].map((r) => (
-            <div key={r} className="w-[11px] h-[11px] rounded-[3px]" style={{ background: colorFor(r) }} />
+            <div key={r} className="w-[11px] h-[11px] rounded-[3px] border border-line" style={{ background: colorFor(r) }} />
           ))}
           <span>More</span>
         </div>

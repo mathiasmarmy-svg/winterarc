@@ -1,22 +1,34 @@
 import { useEffect, useState } from 'react';
 import { Shell, Seal } from './components/UI';
+import { IntroSplash } from './components/IntroSplash';
 import { Landing } from './screens/Landing';
 import { CreateGroup } from './screens/CreateGroup';
 import { JoinGroup } from './screens/JoinGroup';
+import { Login } from './screens/Login';
 import { Dashboard } from './screens/Dashboard';
-import { fetchGroup, insertGroup, saveGroup, subscribeGroup } from './lib/store';
+import { fetchGroup, insertGroup, saveGroup, subscribeGroup, findMemberByPseudo } from './lib/store';
 import { supabaseConfigured } from './lib/supabase';
 import { loadIdentity, saveIdentity } from './lib/identity';
 import { makeGroupCode, todayKey, uid } from './lib/utils';
+import { hashPassword, generateSalt } from './lib/auth';
 import type { Group, Identity, Objective } from './types';
 
-type Phase = 'loading' | 'landing' | 'create' | 'join' | 'dashboard' | 'misconfigured';
+type Phase = 'loading' | 'landing' | 'create' | 'join' | 'login' | 'dashboard' | 'misconfigured';
+
+const INTRO_KEY = 'winterarc:introSeen';
 
 export default function App() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [me, setMe] = useState<Identity | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
   const [error, setError] = useState('');
+  const [showIntro, setShowIntro] = useState(() => {
+    try {
+      return sessionStorage.getItem(INTRO_KEY) !== '1';
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (!supabaseConfigured) {
@@ -56,11 +68,18 @@ export default function App() {
     saveIdentity(identity);
   };
 
-  const handleCreateGroup = async (groupName: string, name: string, city: string, objectives: string[]) => {
+  const handleCreateGroup = async (groupName: string, name: string, city: string, password: string, objectives: string[]) => {
     setError('');
+    const taken = await findMemberByPseudo(name).catch(() => null);
+    if (taken) {
+      setError('That pseudo is already taken. Pick another one.');
+      return;
+    }
     const code = makeGroupCode();
     const memberId = uid();
-    const member = { id: memberId, name, city, checkins: {}, joinedAt: Date.now() };
+    const passwordSalt = generateSalt();
+    const passwordHash = await hashPassword(password, passwordSalt);
+    const member = { id: memberId, name, city, checkins: {}, joinedAt: Date.now(), passwordHash, passwordSalt };
     const newGroup: Group = {
       code,
       name: groupName,
@@ -82,7 +101,7 @@ export default function App() {
     setPhase('dashboard');
   };
 
-  const handleJoinGroup = async (code: string, name: string, city: string) => {
+  const handleJoinGroup = async (code: string, name: string, city: string, password: string) => {
     const upper = code.trim().toUpperCase();
     const g = await fetchGroup(upper).catch(() => null);
     if (!g) {
@@ -93,8 +112,15 @@ export default function App() {
       setError('This cell is full (5 members max).');
       return;
     }
+    const taken = await findMemberByPseudo(name).catch(() => null);
+    if (taken) {
+      setError('That pseudo is already taken. Pick another one.');
+      return;
+    }
     const memberId = uid();
-    const member = { id: memberId, name, city, checkins: {}, joinedAt: Date.now() };
+    const passwordSalt = generateSalt();
+    const passwordHash = await hashPassword(password, passwordSalt);
+    const member = { id: memberId, name, city, checkins: {}, joinedAt: Date.now(), passwordHash, passwordSalt };
     const updated: Group = { ...g, members: [...g.members, member] };
     try {
       await saveGroup(updated);
@@ -105,6 +131,24 @@ export default function App() {
     }
     persistIdentity({ id: memberId, name, groupCode: upper });
     setGroup(updated);
+    setPhase('dashboard');
+  };
+
+  const handleLogin = async (pseudo: string, password: string) => {
+    setError('');
+    const found = await findMemberByPseudo(pseudo).catch(() => null);
+    if (!found) {
+      setError('No account with that pseudo.');
+      return;
+    }
+    const { group: g, member } = found;
+    const hash = await hashPassword(password, member.passwordSalt);
+    if (hash !== member.passwordHash) {
+      setError('Wrong password.');
+      return;
+    }
+    persistIdentity({ id: member.id, name: member.name, groupCode: g.code });
+    setGroup(g);
     setPhase('dashboard');
   };
 
@@ -153,6 +197,21 @@ export default function App() {
     setPhase('landing');
   };
 
+  if (showIntro) {
+    return (
+      <IntroSplash
+        onDone={() => {
+          try {
+            sessionStorage.setItem(INTRO_KEY, '1');
+          } catch {
+            // storage unavailable — the splash will just replay next load
+          }
+          setShowIntro(false);
+        }}
+      />
+    );
+  }
+
   if (phase === 'misconfigured') {
     return (
       <Shell>
@@ -182,7 +241,14 @@ export default function App() {
   if (phase === 'landing') {
     return (
       <Shell>
-        <Landing onCreate={() => setPhase('create')} onJoin={() => setPhase('join')} />
+        <Landing
+          onCreate={() => setPhase('create')}
+          onJoin={() => setPhase('join')}
+          onLogin={() => {
+            setError('');
+            setPhase('login');
+          }}
+        />
       </Shell>
     );
   }
@@ -206,6 +272,14 @@ export default function App() {
     return (
       <Shell>
         <JoinGroup onBack={() => setPhase('landing')} onSubmit={handleJoinGroup} error={error} clearError={() => setError('')} />
+      </Shell>
+    );
+  }
+
+  if (phase === 'login') {
+    return (
+      <Shell>
+        <Login onBack={() => setPhase('landing')} onSubmit={handleLogin} error={error} clearError={() => setError('')} />
       </Shell>
     );
   }

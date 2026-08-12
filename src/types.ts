@@ -12,6 +12,9 @@ export interface Member {
   city: string;
   checkins: Record<string, string[]>;
   joinedAt: number;
+  /** Salted SHA-256 hex digest — never store or transmit the raw password. */
+  passwordHash: string;
+  passwordSalt: string;
 }
 
 export interface ChatMessage {

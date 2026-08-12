@@ -67,16 +67,18 @@ export function Seal({ size = 22, glow = false }: { size?: number; glow?: boolea
         />
         {/* inner faceted ring */}
         <path d="M22 8 L34 14.5 V29.5 L22 36 L10 29.5 V14.5 Z" fill="none" stroke="#5FCBEE" strokeWidth="1" opacity="0.4" />
-        {/* the crack, split ice / ember */}
-        <path d="M22 2.5 L22 22 L4.5 12" stroke={`url(#${gid}-ice)`} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        {/* the arc, split ice / ember — two crossing sweeps, echoing "Winter Arc" */}
+        <path d="M6.5 29.5 Q 22 9 37 15" stroke={`url(#${gid}-ice)`} strokeWidth="1.8" fill="none" strokeLinecap="round" />
         <path
-          d="M22 22 L39.5 12 M22 22 L22 41.5"
+          d="M9.5 33.5 Q 22 17 35.5 25.5"
           stroke={`url(#${gid}-ember)`}
-          strokeWidth="1.8"
+          strokeWidth="1.6"
           fill="none"
           strokeLinecap="round"
-          opacity="0.92"
+          opacity="0.9"
         />
+        {/* apex spark */}
+        <path d="M31 8.5 L32.4 11 L34.9 12.4 L32.4 13.8 L31 16.3 L29.6 13.8 L27.1 12.4 L29.6 11 Z" fill="#8FE3FF" opacity="0.85" />
         {/* rivets */}
         <circle cx="22" cy="2.5" r="1.1" fill="#8FE3FF" />
         <circle cx="39.5" cy="12" r="1.1" fill="#FF8A5C" />
@@ -134,9 +136,10 @@ export function Avatar({ name, id, size = 34, active = false }: { name?: string;
 }
 
 // ---------- Belt / rank badge ----------
-// Only ever fed a { key, label, color } tier — never a score, ratio, or
-// threshold. See src/lib/belt.ts for why.
+// Only ever fed a { key, label, color, tierIndex, subIndex } tier — never a
+// score, ratio, or threshold. See src/lib/belt.ts for why.
 export function RankBadge({ tier, size = 30 }: { tier: BeltTier; size?: number }) {
+  const topPalier = tier.tierIndex >= 8; // Aurora + Eternal glow brighter
   return (
     <motion.div
       key={tier.key}
@@ -150,7 +153,7 @@ export function RankBadge({ tier, size = 30 }: { tier: BeltTier; size?: number }
         height: size,
         background: `radial-gradient(circle at 30% 30%, ${tier.color}66, ${tier.color}1a)`,
         border: `1.5px solid ${tier.color}`,
-        boxShadow: tier.key === 'frost' ? `0 0 12px ${tier.color}88` : `0 0 6px ${tier.color}44`,
+        boxShadow: topPalier ? `0 0 12px ${tier.color}88` : `0 0 6px ${tier.color}44`,
       }}
     >
       <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none">
@@ -163,6 +166,12 @@ export function RankBadge({ tier, size = 30 }: { tier: BeltTier; size?: number }
         />
         <path d="M8.5 12 L11 14.5 L15.5 9.5" stroke={tier.color} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
+      {/* barrette stripes — 1 to 3 small ticks under the badge marking sub-rank */}
+      <div className="absolute left-1/2 -translate-x-1/2 flex gap-[2px]" style={{ bottom: -size * 0.16 }}>
+        {Array.from({ length: tier.subIndex + 1 }).map((_, i) => (
+          <div key={i} style={{ width: size * 0.16, height: size * 0.05, background: tier.color, borderRadius: 1 }} />
+        ))}
+      </div>
     </motion.div>
   );
 }
@@ -323,15 +332,18 @@ export function TextInput({
   placeholder,
   autoFocus,
   mono,
+  password,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   autoFocus?: boolean;
   mono?: boolean;
+  password?: boolean;
 }) {
   return (
     <input
+      type={password ? 'password' : 'text'}
       autoFocus={autoFocus}
       value={value}
       onChange={(e) => onChange(e.target.value)}

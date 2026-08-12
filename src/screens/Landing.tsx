@@ -1,7 +1,7 @@
-import { Plus, Users, ChevronRight } from 'lucide-react';
+import { Plus, Users, ChevronRight, KeyRound } from 'lucide-react';
 import { Wordmark, PrimaryButton, GhostButton } from '../components/UI';
 
-export function Landing({ onCreate, onJoin }: { onCreate: () => void; onJoin: () => void }) {
+export function Landing({ onCreate, onJoin, onLogin }: { onCreate: () => void; onJoin: () => void; onLogin: () => void }) {
   return (
     <div>
       <Wordmark />
@@ -15,12 +15,18 @@ export function Landing({ onCreate, onJoin }: { onCreate: () => void; onJoin: ()
         </span>
         <ChevronRight size={16} className="opacity-70" />
       </PrimaryButton>
-      <GhostButton onClick={onJoin} hoverAccent="#FF5A2B">
+      <GhostButton onClick={onJoin} hoverAccent="#FF5A2B" className="mb-3">
         <span className="flex items-center gap-2.5">
           <Users size={18} color="#FF5A2B" /> Join with a code
         </span>
         <ChevronRight size={16} color="#4B525E" />
       </GhostButton>
+      <button
+        onClick={onLogin}
+        className="w-full flex items-center justify-center gap-1.5 bg-transparent border-none text-text-low text-[13px] py-2 hover:text-ice transition-colors"
+      >
+        <KeyRound size={13} /> Already have a pseudo? Log in
+      </button>
     </div>
   );
 }
