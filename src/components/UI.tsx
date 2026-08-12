@@ -30,7 +30,9 @@ export function Background() {
   );
 }
 
-// ---------- Signature mark: a forged emblem ----------
+// ---------- Signature mark: an ensō — the zen circle of disciplined,
+// never-finished practice. One brushstroke, deliberately left open: kaizen
+// is never "done". ----------
 let sealSeq = 0;
 export function Seal({ size = 22, glow = false }: { size?: number; glow?: boolean }) {
   const gid = React.useMemo(() => `seal-${++sealSeq}`, []);
@@ -44,51 +46,26 @@ export function Seal({ size = 22, glow = false }: { size?: number; glow?: boolea
       )}
       <svg width={size} height={size} viewBox="0 0 44 44" fill="none" className="relative">
         <defs>
-          <linearGradient id={`${gid}-ice`} x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id={`${gid}-stroke`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#8FE3FF" />
-            <stop offset="100%" stopColor="#3A9FBF" />
+            <stop offset="55%" stopColor="#5FCBEE" />
+            <stop offset="100%" stopColor="#FF8A5C" />
           </linearGradient>
-          <linearGradient id={`${gid}-ember`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#FF8A5C" />
-            <stop offset="100%" stopColor="#B23A17" />
-          </linearGradient>
-          <radialGradient id={`${gid}-core`}>
-            <stop offset="0%" stopColor="#FFFFFF" />
-            <stop offset="100%" stopColor="#C7DAE3" />
-          </radialGradient>
         </defs>
-        {/* outer plate */}
-        <path
-          d="M22 2.5 L39.5 12 V32 L22 41.5 L4.5 32 V12 Z"
-          fill={`url(#${gid}-ice)`}
-          fillOpacity="0.06"
-          stroke={`url(#${gid}-ice)`}
-          strokeWidth="1.5"
-        />
-        {/* inner faceted ring */}
-        <path d="M22 8 L34 14.5 V29.5 L22 36 L10 29.5 V14.5 Z" fill="none" stroke="#5FCBEE" strokeWidth="1" opacity="0.4" />
-        {/* the arc, split ice / ember — two crossing sweeps, echoing "Winter Arc" */}
-        <path d="M6.5 29.5 Q 22 9 37 15" stroke={`url(#${gid}-ice)`} strokeWidth="1.8" fill="none" strokeLinecap="round" />
-        <path
-          d="M9.5 33.5 Q 22 17 35.5 25.5"
-          stroke={`url(#${gid}-ember)`}
-          strokeWidth="1.6"
+        {/* the ensō — one incomplete circle, brushed in a single stroke */}
+        <circle
+          cx="22"
+          cy="22"
+          r="15"
           fill="none"
+          stroke={`url(#${gid}-stroke)`}
+          strokeWidth="2.4"
           strokeLinecap="round"
-          opacity="0.9"
+          strokeDasharray="73.5 21"
+          transform="rotate(-100 22 22)"
         />
-        {/* apex spark */}
-        <path d="M31 8.5 L32.4 11 L34.9 12.4 L32.4 13.8 L31 16.3 L29.6 13.8 L27.1 12.4 L29.6 11 Z" fill="#8FE3FF" opacity="0.85" />
-        {/* rivets */}
-        <circle cx="22" cy="2.5" r="1.1" fill="#8FE3FF" />
-        <circle cx="39.5" cy="12" r="1.1" fill="#FF8A5C" />
-        <circle cx="39.5" cy="32" r="1.1" fill="#FF8A5C" />
-        <circle cx="22" cy="41.5" r="1.1" fill="#FF8A5C" />
-        <circle cx="4.5" cy="32" r="1.1" fill="#8FE3FF" />
-        <circle cx="4.5" cy="12" r="1.1" fill="#8FE3FF" />
-        {/* core */}
-        <circle cx="22" cy="22" r="3.4" fill={`url(#${gid}-core)`} />
-        <circle cx="22" cy="22" r="3.4" stroke="#08090C" strokeWidth="0.6" fill="none" />
+        {/* the ink pool where the brush lifted */}
+        <circle cx="7.3" cy="19.8" r="1.3" fill="#FF8A5C" opacity="0.85" />
       </svg>
     </div>
   );

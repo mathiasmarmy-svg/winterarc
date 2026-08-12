@@ -15,20 +15,13 @@ import type { Group, Identity, Objective } from './types';
 
 type Phase = 'loading' | 'landing' | 'create' | 'join' | 'login' | 'dashboard' | 'misconfigured';
 
-const INTRO_KEY = 'winterarc:introSeen';
-
 export default function App() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [me, setMe] = useState<Identity | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
   const [error, setError] = useState('');
-  const [showIntro, setShowIntro] = useState(() => {
-    try {
-      return sessionStorage.getItem(INTRO_KEY) !== '1';
-    } catch {
-      return true;
-    }
-  });
+  // Plays every load, on purpose — no storage gate, so it's never in doubt.
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     if (!supabaseConfigured) {
@@ -201,11 +194,6 @@ export default function App() {
     return (
       <IntroSplash
         onDone={() => {
-          try {
-            sessionStorage.setItem(INTRO_KEY, '1');
-          } catch {
-            // storage unavailable — the splash will just replay next load
-          }
           setShowIntro(false);
         }}
       />

@@ -807,19 +807,25 @@ function StatsTab({ group, me }: { group: Group; me: Identity }) {
         </div>
       </div>
 
-      <div className="grid gap-2">
-        {group.objectives.map((obj) => {
-          const daysWithObj = Object.values(member.checkins).filter((arr) => arr.includes(obj.id)).length;
-          return (
-            <div key={obj.id} className="flex justify-between px-3.5 py-2.5 panel border border-line rounded">
-              <span className={`text-[13px] ${obj.archived ? 'text-text-low line-through' : 'text-text-mid'}`}>
-                {obj.text}
-                {obj.archived && <span className="ml-1.5 text-[10.5px]">(archived)</span>}
-              </span>
-              <span className="text-[13px] font-mono text-text-hi">{daysWithObj}d</span>
-            </div>
-          );
-        })}
+      <div className="border border-line rounded panel p-5">
+        <div className="text-[13px] font-bold text-text-mid uppercase tracking-[1.5px] mb-4">Per objective</div>
+        {group.objectives.length === 0 && <div className="text-text-low text-[13px]">No goals yet.</div>}
+        <div className="grid gap-2">
+          {group.objectives.map((obj) => {
+            const checkinDays = Object.values(member.checkins).filter(
+              (arr): arr is string[] => Array.isArray(arr) && arr.includes(obj.id)
+            );
+            return (
+              <div key={obj.id} className="flex justify-between px-3.5 py-2.5 rounded panel-row border border-line">
+                <span className={`text-[13px] ${obj.archived ? 'text-text-low line-through' : 'text-text-mid'}`}>
+                  {obj.text}
+                  {obj.archived && <span className="ml-1.5 text-[10.5px]">(archived)</span>}
+                </span>
+                <span className="text-[13px] font-mono text-text-hi">{checkinDays.length}d</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
