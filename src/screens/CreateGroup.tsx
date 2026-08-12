@@ -28,36 +28,36 @@ export function CreateGroup({
 
   return (
     <div>
-      <BackRow onBack={onBack} label="Fonder une cellule" />
+      <BackRow onBack={onBack} label="Found a cell" />
       {step === 1 && (
         <div>
-          <FieldLabel>Nom de la cellule</FieldLabel>
-          <TextInput value={groupName} onChange={setGroupName} placeholder="Ex. LES INVAINCUS" autoFocus />
+          <FieldLabel>Cell name</FieldLabel>
+          <TextInput value={groupName} onChange={setGroupName} placeholder="E.g. THE UNBROKEN" autoFocus />
           <div className="h-3.5" />
-          <FieldLabel>Ton prénom</FieldLabel>
+          <FieldLabel>Your name</FieldLabel>
           <TextInput value={name} onChange={setName} placeholder="Mathias" />
           <div className="h-3.5" />
-          <FieldLabel>Ville (optionnel, pour se rencontrer plus tard)</FieldLabel>
+          <FieldLabel>City (optional, to meet up later)</FieldLabel>
           <TextInput value={city} onChange={setCity} placeholder="Morges" />
           <PrimaryButton disabled={!groupName.trim() || !name.trim()} onClick={() => setStep(2)} className="mt-5">
-            Continuer
+            Continue
           </PrimaryButton>
         </div>
       )}
       {step === 2 && (
         <div>
-          <FieldLabel>Objectifs SMART pour l'hiver</FieldLabel>
+          <FieldLabel>SMART goals for the winter</FieldLabel>
           <p className="text-text-low text-[13px] -mt-1.5 mb-3.5">
-            Chiffrés, datés. Ex : "50 pompes / jour" plutôt que "faire du sport".
+            Numbered, time-bound. E.g. "50 push-ups / day" rather than "get fit".
           </p>
           {objectives.map((o, i) => (
             <div key={i} className="flex gap-2 mb-2">
-              <TextInput value={o} onChange={(v) => updateObjective(i, v)} placeholder={`Objectif ${i + 1}`} />
+              <TextInput value={o} onChange={(v) => updateObjective(i, v)} placeholder={`Goal ${i + 1}`} />
               {objectives.length > 1 && (
                 <button
                   onClick={() => removeObjective(i)}
                   className="bg-transparent border-none text-text-low p-2 hover:text-ember transition-colors"
-                  aria-label="Supprimer"
+                  aria-label="Remove"
                 >
                   <X size={16} />
                 </button>
@@ -69,7 +69,7 @@ export function CreateGroup({
               onClick={addObjective}
               className="bg-transparent border border-dashed border-line rounded text-ice text-[13.5px] px-3 py-2 w-full mt-1 flex items-center justify-center gap-1.5 hover:border-ice transition-colors"
             >
-              <Plus size={14} /> Ajouter un objectif
+              <Plus size={14} /> Add a goal
             </button>
           )}
           {error && <div className="text-ember text-[13px] mt-2.5">{error}</div>}
@@ -78,7 +78,7 @@ export function CreateGroup({
             onClick={() => onSubmit(groupName.trim(), name.trim(), city.trim(), validObjectives)}
             className="mt-5"
           >
-            Forger la cellule
+            Forge the cell
           </PrimaryButton>
         </div>
       )}

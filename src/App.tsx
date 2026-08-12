@@ -8,7 +8,7 @@ import { fetchGroup, insertGroup, saveGroup, subscribeGroup } from './lib/store'
 import { supabaseConfigured } from './lib/supabase';
 import { loadIdentity, saveIdentity } from './lib/identity';
 import { makeGroupCode, todayKey, uid } from './lib/utils';
-import type { Group, Identity } from './types';
+import type { Group, Identity, Objective } from './types';
 
 type Phase = 'loading' | 'landing' | 'create' | 'join' | 'dashboard' | 'misconfigured';
 
@@ -65,6 +65,7 @@ export default function App() {
       code,
       name: groupName,
       createdAt: Date.now(),
+      founderId: memberId,
       objectives: objectives.map((o) => ({ id: uid(), text: o })),
       members: [member],
       messages: [],
@@ -72,7 +73,7 @@ export default function App() {
     try {
       await insertGroup(newGroup);
     } catch (e) {
-      setError("Impossible de créer la cellule. Réessaie dans un instant.");
+      setError('Could not create the cell. Try again in a moment.');
       console.error(e);
       return;
     }
@@ -85,11 +86,11 @@ export default function App() {
     const upper = code.trim().toUpperCase();
     const g = await fetchGroup(upper).catch(() => null);
     if (!g) {
-      setError('Ce code ne correspond à aucun groupe.');
+      setError('That code doesn’t match any cell.');
       return;
     }
     if (g.members.length >= 5) {
-      setError('Ce groupe est complet (5 membres max).');
+      setError('This cell is full (5 members max).');
       return;
     }
     const memberId = uid();
@@ -98,7 +99,7 @@ export default function App() {
     try {
       await saveGroup(updated);
     } catch (e) {
-      setError("Impossible de rejoindre la cellule. Réessaie dans un instant.");
+      setError('Could not join the cell. Try again in a moment.');
       console.error(e);
       return;
     }
@@ -138,6 +139,13 @@ export default function App() {
     await saveGroup(updated).catch((e) => console.error(e));
   };
 
+  const handleUpdateObjectives = async (objectives: Objective[]) => {
+    if (!group) return;
+    const updated: Group = { ...group, objectives };
+    setGroup(updated);
+    await saveGroup(updated).catch((e) => console.error(e));
+  };
+
   const handleLeave = () => {
     saveIdentity(null);
     setMe(null);
@@ -153,8 +161,8 @@ export default function App() {
           <span className="font-display text-2xl tracking-wide">WINTER ARC</span>
         </div>
         <div className="border border-line rounded bg-surface p-5 text-[13.5px] text-text-mid leading-relaxed">
-          Backend non configuré. Renseigne <code className="text-ice font-mono">VITE_SUPABASE_URL</code> et{' '}
-          <code className="text-ice font-mono">VITE_SUPABASE_ANON_KEY</code> pour activer les cellules partagées.
+          Backend not configured. Set <code className="text-ice font-mono">VITE_SUPABASE_URL</code> and{' '}
+          <code className="text-ice font-mono">VITE_SUPABASE_ANON_KEY</code> to enable shared cells.
         </div>
       </Shell>
     );
@@ -165,7 +173,7 @@ export default function App() {
       <Shell>
         <div className="flex items-center gap-2.5 text-text-low">
           <Seal size={18} glow />
-          <span>Chargement</span>
+          <span>Loading</span>
         </div>
       </Shell>
     );
@@ -205,14 +213,21 @@ export default function App() {
   if (phase === 'dashboard' && group && me) {
     return (
       <Shell wide>
-        <Dashboard group={group} me={me} onCheckIn={handleCheckIn} onLeave={handleLeave} onSendMessage={handleSendMessage} />
+        <Dashboard
+          group={group}
+          me={me}
+          onCheckIn={handleCheckIn}
+          onLeave={handleLeave}
+          onSendMessage={handleSendMessage}
+          onUpdateObjectives={handleUpdateObjectives}
+        />
       </Shell>
     );
   }
 
   return (
     <Shell>
-      <div className="text-text-mid">Une erreur est survenue.</div>
+      <div className="text-text-mid">Something went wrong.</div>
     </Shell>
   );
 }

@@ -1,36 +1,38 @@
 # Winter Arc
 
-Une cellule de 4 à 5 personnes. Un hiver. Des objectifs chiffrés tenus ou non,
-visibles de tous, chaque jour.
+A cell of 4 to 5 people. One winter. Numbered goals, hit or missed,
+visible to everyone, every day.
 
-React + Vite + TypeScript + Tailwind, données partagées via Supabase.
+React + Vite + TypeScript + Tailwind, shared data via Supabase.
 
-## Développement local
+## Local development
 
 ```bash
 npm install
-cp .env.example .env.local   # renseigne VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+cp .env.example .env.local   # fill in VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
 npm run dev
 ```
 
 ## Backend (Supabase)
 
-1. Crée un projet gratuit sur [supabase.com](https://supabase.com).
-2. Dans **SQL Editor**, exécute le contenu de [`supabase/schema.sql`](supabase/schema.sql)
-   pour créer la table `groups` et activer le temps réel.
-3. Dans **Project Settings > API**, récupère l'**URL** du projet et la clé
-   **anon public** — ce sont `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY`.
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In **SQL Editor**, run the contents of [`supabase/schema.sql`](supabase/schema.sql)
+   to create the `groups` table and enable realtime. The script is
+   idempotent — safe to re-run after a schema update (e.g. when the
+   `founder_id` column was added).
+3. In **Project Settings > API**, grab the project **URL** and the
+   **anon public** key — these are `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
-## Déploiement (GitHub Pages)
+## Deployment (GitHub Pages)
 
-Le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) build
-et publie automatiquement sur GitHub Pages à chaque push sur `main`.
+The [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) workflow
+builds and publishes to GitHub Pages automatically on every push to `main`.
 
-À configurer une fois, dans les paramètres du repo GitHub :
+One-time setup in the GitHub repo settings:
 
 1. **Settings > Pages** → Source = **GitHub Actions**.
-2. **Settings > Secrets and variables > Actions** → ajoute deux secrets :
+2. **Settings > Secrets and variables > Actions** → add two secrets:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-3. Pousse sur `main` (ou relance le workflow manuellement) — le site est
-   ensuite servi sur `https://<owner>.github.io/winterarc/`.
+3. Push to `main` (or re-run the workflow manually) — the site is then
+   served at `https://<owner>.github.io/winterarc/`.
